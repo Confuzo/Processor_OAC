@@ -1,8 +1,8 @@
 #include <systemc.h>
-
+#include "Memory.hpp"
 SC_MODULE (ula) {
-        sc_in<sc_uint<32>> reg_a, reg_b;
-        sc_out<sc_uint<32>> reg_dest;
+        Memory *memory;
+        sc_in<sc_uint<32>> reg_a, reg_b, dest;
 
         sc_in<sc_uint<4>> op_code;
 
@@ -15,6 +15,10 @@ SC_MODULE (ula) {
         sc_in<sc_uint<32>> data_mem_out;
         sc_out<sc_uint<32> > addr;
 
+        /**
+         * Ula com 12 operações o funcionamento é o padrão e pos resultados das operações são impressos na tela
+        */
+
         void do_operation() {
             data_a = reg_a.read();
             data_b = reg_b.read();
@@ -22,6 +26,7 @@ SC_MODULE (ula) {
             switch (op_code.read()) {
                 case 1:
                     res = data_a + data_b;
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | Sum >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
@@ -33,21 +38,25 @@ SC_MODULE (ula) {
                         n.write(false);
                         if (res == 0) z.write(true);
                     }
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | Sub >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
                 case 3:
                     res = data_a && data_b;
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | AND >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
                 case 4:
                     res = data_a || data_b;
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | OR >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
                 case 5:
                     res = not (data_a || data_b);
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | XOR >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
@@ -61,11 +70,13 @@ SC_MODULE (ula) {
                         z.write(true);;
                         res = 1;
                     }
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | Comp >> (op1: "
                     << data_a << ") (op2: " << data_b << ") (res: " << res << ")" << endl;
                     break;
                 case 7:
                     res = not (data_a);
+                    memory->att_registers(dest.read(), res);
                     cout << "@" << sc_time_stamp() << " | Not >> (op: "
                     << data_a << ") (res: " << res << ")" << endl;
                     break;
@@ -105,12 +116,15 @@ SC_MODULE (ula) {
                     std::cout << op_code.read() << std::endl;
                     break;
             }
-            reg_dest.write(res);
         }
 
         SC_CTOR(ula) {
             SC_METHOD(do_operation);
             sensitive << reg_a << reg_b << op_code;
+        }
+
+        void load_memory(Memory *m){
+            memory = m;
         }
 };
 

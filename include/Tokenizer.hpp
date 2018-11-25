@@ -3,6 +3,10 @@
 #include "Instructions.hpp"
 #include <vector>
 #include <iostream>
+
+/**
+ * Classe responsável por tokenizar um linha de instrução
+*/
 class Tokenizer
 {
 

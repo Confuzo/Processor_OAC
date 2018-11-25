@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "Instructions.hpp"
-
+#include "Memory.hpp"
 SC_MODULE(pipeline)
 {
 
@@ -11,30 +11,32 @@ SC_MODULE(pipeline)
     sc_in<sc_uint<32>> address;
     sc_out<bool> enable;
     sc_in<bool> clk;
+    sc_out<sc_uint<32>> dest;
 
     std::vector<std::string> registers;
     std::vector<Instructions> instructions_v;
-
-    void l_registers(){
-        std::ifstream arquivo("files/regs.txt", std::fstream::in);
-        std::string line;
-        while (std::getline(arquivo, line))
-        {
-            if (!line.empty())
-            {
-                Tokenizer tokenizer(line);
-                std::vector<std::string> token = tokenizer.getToken();
-                for (auto i(0u); i < token.size(); i++)
-                {
-                    registers.push_back(token.at(i));
-                }
-            }
-        }
-
-        arquivo.close();
+    Memory *memory;
+   
+   /**
+    * Carrega a memória
+    * @param *Memory ponteiro de objeto do tipo Memory
+   */
+   void l_memory(Memory * m){
+       memory = m;
+   }
+    /**
+     * Carrega os registradores da memória para um vetor local
+    */
+    void l_registers()
+    {
+        registers = memory->getRegisters();
     }
 
-    void l_instructions(){
+    /**
+     * Faz a leitura das instruções de uma arquivo
+    */
+    void l_instructions()
+    {
         std::ifstream arquivo("files/data.txt", std::fstream::in);
         std::string line;
 
@@ -50,27 +52,55 @@ SC_MODULE(pipeline)
         arquivo.close();
     }
 
-    void w_registers(){
-        if (address.read() >= instructions_v.size()){
+    /**
+     * Pega o endereço da instrução e define o opcode deste além dos valores dos operandos 
+    */
+    void w_registers()
+    {
+        if (address.read() >= instructions_v.size())
+        {
             enable.write(false);
             return;
-        }else{
+        }
+        else
+        {
             enable.write(true);
         }
-
-        Instructions  instruction = instructions_v.at(address.read());
+        Instructions instruction = instructions_v.at(address.read());
+        if (instruction.getDest() != "")
+        {
+            std::string r3 = instruction.getDest();
+            int index3;
+            if (r3.length() < 4)
+            {
+                index3 = stoi(r3.substr(r3.length() - 1));
+            }
+            else
+            {
+                index3 = stoi(r3.substr(r3.length() - 2));
+            }
+            dest.write(index3);
+        }
         if (instruction.getOp1() != "" and instruction.getOp2() != "" and instruction.getName() != "lw")
         {
             std::string r1 = instruction.getOp1();
             std::string r2 = instruction.getOp2();
-            int index1 = stoi(r1.substr(r1.length() - 1));
-            int index2 = stoi(r2.substr(r2.length() - 1));
+            int index1, index2;
+            if (r1.length() < 4 and r2.length() < 4)
+            {
+                index1 = stoi(r1.substr(r1.length() - 1));
+                index2 = stoi(r2.substr(r2.length() - 1));
+            }
+            else
+            {
+                index1 = stoi(r1.substr(r1.length() - 2));
+                index2 = stoi(r2.substr(r2.length() - 2));
+            }
             int op1 = stoi(registers.at(index1));
             int op2 = stoi(registers.at(index2));
             reg_a.write(op1);
             reg_b.write(op2);
         }
-
         if (instruction.getName() == "add")
         {
             op_code.write(1);

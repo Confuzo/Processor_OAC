@@ -12,10 +12,14 @@ SC_MODULE (controller) {
     sc_in<bool> n;
     sc_in<bool> z;
 
+    /**
+     * Incrementa os endereços das intruções e ao ler e executar todas realiza o fim da aplicação
+    */
     void increment () {
         while (true) {
             wait();
             if (enable.read() == true) {
+                //Toma o cuidado se eh uma instrução de jump, caso seja faz o devido salto
                 if (op_code.read() == 8 or op_code.read() == 9 or op_code.read() == 10) {
                     if((op_code.read() == 9 and n.read() == true) or (op_code.read() == 10 and z.read() == true)){
                         count = reg_a.read();
